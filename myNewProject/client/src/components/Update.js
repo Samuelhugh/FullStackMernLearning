@@ -1,80 +1,60 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import MainForm from "./MainForm";
 
-const Update = (props) => {
-  // This process is identical to the one we used with our Detail.js component
+const Update = () => {
+  // Extracting an ID to use in this component
   const { id } = useParams();
-  // Setting up "state" for this file
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  // Setting up "Navigate" for onSubmit
+  // Set "Navigate" to go to homepage onSubmit
   const navigate = useNavigate();
+  // set "useLocation" to pull in data - Link and Navigation works also...
+  const { state } = useLocation();
+  // Create Person Object Tracker to see if state is present
+  const [personObjectTracker, setPersonObjectTracker] = useState(null);
 
-  // Retrieve the current values for this person so we can fill
-  // in the form with what is in the db currently (Pre-Populate)
+  // Retrieve Person Object from DB IF not currently present, ELSE set what is in useLocation state to setPersonObjectTracker to Pre-Populate
   useEffect(() => {
-    // Using String Interpolation
-    axios
-      .get(`http://localhost:8000/api/people/${id}`)
-      .then((res) => {
-        console.log(res);
-        setFirstName(res.data.firstName);
-        setLastName(res.data.lastName);
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-  }, []);
+    if (!state) {
+      axios
+        .get(`http://localhost:8000/api/people/${id}`)
+        .then((res) => {
+          console.log(res);
+          setPersonObjectTracker(res.data);
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    } else {
+      setPersonObjectTracker(state);
+    }
+    // Using Dependency Array to use the IDs dynamically
+  }, [id]);
 
-  const updatePerson = (e) => {
-    // Preventing Default Browser behavior (Page Refresh) so the Form Data isn't Erased when submitted
-    e.preventDefault();
+  const submitHandler = (person, setErrors) => {
     axios
-      .put(`http://localhost:8000/api/people/${id}`, {
-        firstName, // This is shortcut syntax for firstName: firstName
-        lastName, // This is shortcut syntax for lastName: lastName
-      })
+      .put(`http://localhost:8000/api/people/${id}`, person)
       .then((res) => {
         console.log(res);
-        // This will take us back to the Main.js
-        navigate("/api/people");
+        navigate("/");
       })
       .catch((err) => {
         console.log(err);
+        setErrors(err.response.data.errors);
+        navigate(`/api/people/edit/${id}`);
       });
   };
 
   return (
     <div>
       <h1>Update a Person</h1>
-      <form onSubmit={updatePerson}>
-        <p>
-          <label>First Name</label>
-          <br />
-          <input
-            type="text"
-            name="firstName"
-            value={firstName}
-            onChange={(e) => {
-              setFirstName(e.target.value);
-            }}
-          />
-        </p>
-        <p>
-          <label>Last Name</label>
-          <br />
-          <input
-            type="text"
-            name="lastName"
-            value={lastName}
-            onChange={(e) => {
-              setLastName(e.target.value);
-            }}
-          />
-        </p>
-        <input type="submit" />
-      </form>
+      {personObjectTracker && (
+        <MainForm
+          submitHandler={submitHandler}
+          buttonText="Update person"
+          personObjectTracker={personObjectTracker}
+        />
+      )}
     </div>
   );
 };

@@ -33,20 +33,25 @@ const createPerson = (req, res) => {
   // This will use whatever the body of the client's request sends over
   Person.create(req.body)
     // Using Express "status" Middle-ware
-    .then((person) => res.status(201).json(person))
-    .catch((err) => res.status(500).json(err));
+    .then((person) => res.json(person))
+    .catch((err) => {
+      res.status(400).json(err);
+    });
 };
 
 // Update
 const updatePerson = (req, res) => {
-  Person.findOneAndUpdate({ _id: req.params.id }, req.body, { new: true })
+  Person.findOneAndUpdate({ _id: req.params.id }, req.body, {
+    new: true,
+    runValidators: true,
+  })
     .then((updatedPerson) => {
       console.log(updatedPerson);
       res.json(updatedPerson);
     })
     .catch((err) => {
       console.log(err);
-      res.json(err);
+      res.status(400).json(err);
     });
 };
 
